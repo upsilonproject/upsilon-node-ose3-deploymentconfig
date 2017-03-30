@@ -34,6 +34,9 @@ items:
           ports:
           - containerPort: 4000
             protocol: TCP
+          env:
+          - name: UPSILON_CONFIG_SYSTEM_AMQPHOST
+            value: upsilon
           livenessProbe:
             httpGet:
               path: /
