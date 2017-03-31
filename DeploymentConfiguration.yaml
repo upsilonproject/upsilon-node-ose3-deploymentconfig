@@ -37,6 +37,8 @@ items:
           env:
           - name: UPSILON_CONFIG_SYSTEM_AMQPHOST
             value: upsilon
+          - name: UPSILON_IDENTIFIER
+            value: unnamed-upsilon-node 
           livenessProbe:
             httpGet:
               path: /
