@@ -48,15 +48,54 @@ items:
             periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: upsilon-web
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: upsilon-web
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          deploymentconfig: upsilon-web
+      spec:
+        containers:
+        - image: upsilon-project/web:latest
+          name: upsilon-web
+          ports:
+          - containerPort: 80
+            protocol: TCP
+          env:
+          - name: CFG_DB_DSN
+            value: changeme
+          - name: CFG_DB_USER
+            value: changeme
+          - name: CFG_DB_PASS
+            value: changeme
+          - name: CFG_PASSWORD_SALT
+            value: changeme
+          livenessProbe:
+            httpGet:
+              path: /upsilon-web
+              port: 80
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
     triggers:
     - type: ConfigChange
     - imageChangeParams:
         automatic: true
         containerNames:
-        - upsilon-node
+        - upsilon-web
         from:
           kind: ImageStreamTag
-          name: upsilon-node:latest
+          name: upsilon-web:latest
       type: ImageChange
 - apiVersion: v1
   kind: ImageStream
@@ -72,3 +111,49 @@ items:
     to:
       kind: Service
       name: upsilon-node
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: upsilon-web
+  spec:
+    dockerImageRepository: upsilonproject/web 
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: upsilon-web
+  spec:
+    to:
+      kind: Service
+      name: upsilon-web
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: upsilon-custodian
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: upsilon-custodian
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          deploymentconfig: upsilon-custodian
+      spec:
+        containers:
+        - image: upsilon-project/custodian:latest
+          name: upsilon-custodian
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: upsilon-custodian
+  spec:
+    dockerImageRepository: upsilonproject/custodian
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: upsilon-custodian
+  spec:
+    to:
+      kind: Service
+      name: upsilon-custodian
