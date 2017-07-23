@@ -1,36 +1,54 @@
 apiVersion: v1
-kind: List
+kind: Template
 metadata:
-  name: recreate-example
-items:
+  name: upsilon-on-openshift
+  annotations:
+    description: "Upsilon Project on OpenShift"
+    tags: "instant-app"
+parameters: 
+- name: SYSTEM_ID
+  description: The Upsilon System ID
+  value: default
+  required: true
+objects:
 - apiVersion: v1
   kind: Service
   metadata:
-    name: upsilon-node
+    name: upsilon-web
+  spec:
+    ports:
+    - port: 80
+      targetPort: 80
+    selector:
+      deploymentconfig: upsilon-web
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: upsilon-drone
   spec:
     ports:
     - port: 4000
       targetPort: 4000
     selector:
-      deploymentconfig: upsilon-node
+      deploymentconfig: upsilon-drone
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
-    name: upsilon-node
+    name: upsilon-drone
   spec:
     replicas: 1
     selector:
-      deploymentconfig: upsilon-node
+      deploymentconfig: upsilon-drone
     strategy:
       type: Recreate
     template:
       metadata:
         labels:
-          deploymentconfig: upsilon-node
+          deploymentconfig: upsilon-drone
       spec:
         containers:
-        - image: upsilon-project/node:latest
-          name: upsilon-node
+        - image: upsilonproject/drone:latest
+          name: upsilon-drone
           ports:
           - containerPort: 4000
             protocol: TCP
@@ -38,7 +56,7 @@ items:
           - name: UPSILON_CONFIG_SYSTEM_AMQPHOST
             value: upsilon
           - name: UPSILON_IDENTIFIER
-            value: unnamed-upsilon-node 
+            value: unnamed-upsilon-drone 
           livenessProbe:
             httpGet:
               path: /
@@ -64,7 +82,7 @@ items:
           deploymentconfig: upsilon-web
       spec:
         containers:
-        - image: upsilon-project/web:latest
+        - image: upsilonproject/web:latest
           name: upsilon-web
           ports:
           - containerPort: 80
@@ -100,17 +118,17 @@ items:
 - apiVersion: v1
   kind: ImageStream
   metadata:
-    name: upsilon-node
+    name: upsilon-drone
   spec:
-    dockerImageRepository: upsilonproject/node
+    dockerImageRepository: upsilonproject/drone
 - apiVersion: v1
   kind: Route
   metadata:
-    name: upsilon-node
+    name: upsilon-drone
   spec:
     to:
       kind: Service
-      name: upsilon-node
+      name: upsilon-drone
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -141,7 +159,7 @@ items:
           deploymentconfig: upsilon-custodian
       spec:
         containers:
-        - image: upsilon-project/custodian:latest
+        - image: upsilonproject/custodian:latest
           name: upsilon-custodian
 - apiVersion: v1
   kind: ImageStream
@@ -150,10 +168,189 @@ items:
   spec:
     dockerImageRepository: upsilonproject/custodian
 - apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: upsilon-reactor
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: upsilon-reactor
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          deploymentconfig: upsilon-reactor
+      spec:
+        containers:
+        - image: upsilonproject/reactor:latest
+          name: upsilon-reactor
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: upsilon-reactor
+  spec:
+    dockerImageRepository: upsilonproject/reactor
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: upsilon-amqp
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: upsilon-amqp
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          deploymentconfig: upsilon-amqp
+      spec:
+        containers:
+        - image: luiscoms/openshift-rabbitmq:latest
+          name: upsilon-amqp
+          ports:
+          - containerPort: 15672
+            protocol: TCP
+          - containerPort: 5672
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 15672
+              scheme: HTTP
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshhold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 15672
+              scheme: HTTP
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: upsilon-amqp
+  spec:
+    dockerImageRepository: luiscoms/openshift-rabbitmq
+- apiVersion: v1
   kind: Route
   metadata:
-    name: upsilon-custodian
+    name: amqp-mgmt
   spec:
     to:
       kind: Service
-      name: upsilon-custodian
+      name: amqp-mgmt
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: amqp-mgmt
+  spec:
+    ports:
+    - port: 15672
+      targetPort: 15672
+    selector:
+      deploymentconfig: upsilon-amqp
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: upsilon
+  spec:
+    ports:
+    - port: 5672
+      targetPort: 5672
+    selector:
+      deploymentconfig: upsilon-amqp
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: mysql
+  spec:
+    replicas: 1
+    strategy:
+      type: Recreate
+    triggers:
+      - type: ImageChange
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - mysql
+          from:
+            kind: ImageStreamTag
+            namespace: openshift
+            name: 'mysql:5.7'
+    template:
+      metadata:
+        labels:
+          name: mysql
+      spec:
+        volumes:
+          - name: mysql-data
+            persistentVolumeClaim:
+              claimName: mysql
+        containers:
+          - name: mysql
+            image: >-
+              centos/mysql-57-centos7@sha256:54444d4e5c358aeb276b53889a9d714b410364b78fb5ca98791589ba0875762a
+            ports:
+              - containerPort: 3306
+                protocol: TCP
+            env:
+              - name: MYSQL_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: mysql
+                    key: database-user
+              - name: MYSQL_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: mysql
+                    key: database-password
+              - name: MYSQL_ROOT_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: mysql
+                    key: database-root-password
+              - name: MYSQL_DATABASE
+                value: sampledb
+            resources:
+              limits:
+                memory: 512Mi
+            volumeMounts:
+              - name: mysql-data
+                mountPath: /var/lib/mysql/data
+            livenessProbe:
+              tcpSocket:
+                port: 3306
+              initialDelaySeconds: 30
+              timeoutSeconds: 1
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
+            readinessProbe:
+              exec:
+                command:
+                  - /bin/sh
+                  - '-i'
+                  - '-c'
+                  - >-
+                    MYSQL_PWD="$MYSQL_PASSWORD" mysql -h 127.0.0.1 -u $MYSQL_USER
+                    -D $MYSQL_DATABASE -e 'SELECT 1'
+              initialDelaySeconds: 5
+              timeoutSeconds: 1
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
+            terminationMessagePath: /dev/termination-log
+            imagePullPolicy: IfNotPresent
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
