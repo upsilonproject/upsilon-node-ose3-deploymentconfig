@@ -354,3 +354,33 @@ objects:
         terminationGracePeriodSeconds: 30
         dnsPolicy: ClusterFirst
         securityContext: {}
+-	apiVersion: v1
+	kind: ConfigMap
+	metadata:
+		name: reactor
+	data:
+		reactor.cfg: |+
+			[amqp]
+			host=upsilon
+			queue=upsilon-reactor-recv
+
+			[respond_all_results]
+			listen=SERVICE_CHECK_RESULT
+			filter=karma=bad
+			react=log
+-	apiVersion: v1
+	kind: ConfigMap
+	metadata:
+		name: custodian
+	data:
+		defaults.cfg: |+
+			[database]
+			user=upsilon
+			pass=
+
+			[amqp]
+			host=upsilon
+			exchange=ex_upsilon
+			queue=custodian
+
+
