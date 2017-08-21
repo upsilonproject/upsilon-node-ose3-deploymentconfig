@@ -161,6 +161,15 @@ objects:
         containers:
         - image: upsilonproject/custodian:latest
           name: upsilon-custodian
+          volumeMounts:
+            - mountPath: /etc/upsilon-custodian
+              name: custodian-cfg
+        volumes:
+          - configMap:
+              defaultMode: 420
+              name: custodian
+            name: custodian-cfg
+
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -185,6 +194,14 @@ objects:
         containers:
         - image: upsilonproject/reactor:latest
           name: upsilon-reactor
+          volumeMounts:
+            - mountPath: /etc/upsilon-reactor
+              name: reactor-cfg
+        volumes:
+          - configMap:
+              defaultMode: 420
+              name: reactor
+            name: reactor-cfg
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -354,33 +371,34 @@ objects:
         terminationGracePeriodSeconds: 30
         dnsPolicy: ClusterFirst
         securityContext: {}
--	apiVersion: v1
-	kind: ConfigMap
-	metadata:
-		name: reactor
-	data:
-		reactor.cfg: |+
-			[amqp]
-			host=upsilon
-			queue=upsilon-reactor-recv
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: reactor
+  data:
+    reactor.cfg: |+
+      [amqp]
+      host=upsilon
+      queue=upsilon-reactor-recv
 
-			[respond_all_results]
-			listen=SERVICE_CHECK_RESULT
-			filter=karma=bad
-			react=log
--	apiVersion: v1
-	kind: ConfigMap
-	metadata:
-		name: custodian
-	data:
-		defaults.cfg: |+
-			[database]
-			user=upsilon
-			pass=
+      [respond_all_results]
+      listen=SERVICE_CHECK_RESULT
+      filter=karma=bad
+      react=log
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: custodian
+  data:
+    defaults.cfg: |+
+      [database]
+      user=upsilon
+      pass=
+      host=mysql
 
-			[amqp]
-			host=upsilon
-			exchange=ex_upsilon
-			queue=custodian
+      [amqp]
+      host=upsilon
+      exchange=ex_upsilon
+      queue=custodian
 
 
