@@ -18,7 +18,7 @@ objects:
   spec:
     ports:
     - port: 80
-      targetPort: 80
+      targetPort: 8080
     selector:
       deploymentconfig: upsilon-web
 - apiVersion: v1
@@ -98,10 +98,11 @@ objects:
             value: changeme
           livenessProbe:
             httpGet:
-              path: /upsilon-web
-              port: 80
+              path: /
+              port: 8080
               scheme: HTTP
-            timeoutSeconds: 1
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
             periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
@@ -336,7 +337,7 @@ objects:
                     name: mysql
                     key: database-root-password
               - name: MYSQL_DATABASE
-                value: sampledb
+                value: upsilon
             resources:
               limits:
                 memory: 512Mi
@@ -400,5 +401,11 @@ objects:
       host=upsilon
       exchange=ex_upsilon
       queue=custodian
-
-
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: mysql
+  data:
+    database-user: dXBzaWxvbg==
+    database-password: ""
+    database-root-password: ""
