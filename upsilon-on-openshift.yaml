@@ -10,6 +10,10 @@ parameters:
   description: The Upsilon System ID
   value: default
   required: true
+- name: PASSWORD_SALT
+  displayName: Password Salt
+  generate: expression
+  from: "[a-zA-Z0-0]{12}"
 objects:
 - apiVersion: v1
   kind: Service
@@ -89,13 +93,19 @@ objects:
             protocol: TCP
           env:
           - name: CFG_DB_DSN
-            value: changeme
+            value: mysql:host=mysql;dbname=upsilon
           - name: CFG_DB_USER
-            value: changeme
+            valueFrom:
+              secretKeyRef:
+                name: mysql
+                key: database-user
           - name: CFG_DB_PASS
-            value: changeme
+            valueFrom:
+              secretKeyRef:
+                name: mysql
+                key: database-password
           - name: CFG_PASSWORD_SALT
-            value: changeme
+            value: "${PASSWORD_SALT}"
           livenessProbe:
             httpGet:
               path: /
@@ -266,6 +276,16 @@ objects:
     to:
       kind: Service
       name: amqp-mgmt
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: mysql
+    spec:
+      ports:
+        - port: 3306
+          targetPort: 3306
+      selector:
+        deploymentconfig: mysql
 - apiVersion: v1
   kind: Service
   metadata:
