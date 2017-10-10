@@ -1,5 +1,8 @@
-create:
-	oc process upsilon-on-openshift | oc create -f -
+process:
+	oc process upsilon-on-openshift
+	
+deploy: process
+	oc new-app upsilon-on-openshift
 
 install:
 	oc delete template upsilon-on-openshift --ignore-not-found=true
@@ -8,4 +11,9 @@ install:
 delete:
 	oc delete all --all
 
-.PHONY: install delete create
+clean: delete
+
+lint:
+	yamllint upsilon-on-openshift.yaml
+
+.PHONY: process deploy install delete lint clean
