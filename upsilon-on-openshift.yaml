@@ -88,14 +88,23 @@ objects:
           - containerPort: 80
             protocol: TCP
           env:
-          - name: CFG_DB_DSN
-            value: changeme
-          - name: CFG_DB_USER
-            value: changeme
-          - name: CFG_DB_PASS
-            value: changeme
-          - name: CFG_PASSWORD_SALT
-            value: changeme
+            - name: CFG_DB_DSN
+              value: "mysql:host=mysql;dbname=upsilon"
+            - name: CFG_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: database-user
+            - name: CFG_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: database-password
+            - name: CFG_PASSWORD_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: local-password-salt
           livenessProbe:
             httpGet:
               path: /
@@ -409,3 +418,14 @@ objects:
     database-user: dXBzaWxvbg==
     database-password: ""
     database-root-password: ""
+    local-password-salt: ""
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata: 
+    name: mysql
+  spec:
+    resources:
+      requests: 
+        storage: 1Gi
+    accessModes:
+      - "ReadWriteOnce"
