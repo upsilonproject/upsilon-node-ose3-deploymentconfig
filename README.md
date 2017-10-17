@@ -1,4 +1,4 @@
-# upsilon-ose3-template
+# upsilon-on-openshift
 
 This template includes pod definitions, services, routes and all the other 
 OpenShift 3 resources necessary to run upsilon on openshit.
