@@ -171,6 +171,8 @@ objects:
     kind: Route
     metadata:
       name: upsilon-web
+      labels:
+        app: upsilon
     spec:
       to:
         kind: Service
