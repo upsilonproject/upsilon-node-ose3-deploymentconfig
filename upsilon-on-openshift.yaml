@@ -6,6 +6,7 @@ metadata:
   annotations:
     description: "Upsilon Project on OpenShift"
     tags: "instant-app"
+    iconClass: "fa-cogs"
 parameters:
   - name: SYSTEM_ID
     description: The Upsilon System ID
@@ -389,7 +390,7 @@ objects:
               livenessProbe:
                 tcpSocket:
                   port: 3306
-                initialDelaySeconds: 30
+                initialDelaySeconds: 180
                 timeoutSeconds: 5
                 periodSeconds: 10
                 successThreshold: 1
