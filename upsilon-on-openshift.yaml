@@ -6,7 +6,7 @@ metadata:
   annotations:
     description: "Upsilon Project on OpenShift"
     tags: "instant-app"
-    iconClass: "fa-cogs"
+    iconClass: "fa fa-cogs"
 parameters:
   - name: SYSTEM_ID
     description: The Upsilon System ID
